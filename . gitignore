@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.env
+.venv
+ENV/
+env/
+venv/
+
+# Virtual Environment
+*.env
+*.venv
+env/
+venv/
+ENV/
+
+# VSCode / IDE
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+*.out
+*.err
+
+# Byte-compiled / cache
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+.cache
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Firebase credentials
+firebase-key.json
+
+# Google Colab checkpoints
+.ipynb_checkpoints
+
+# Replit specific
+.replit
