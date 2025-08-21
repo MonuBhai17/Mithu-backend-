@@ -8,6 +8,11 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 # ✅ COLAB_URL Replit Secrets se uthana
 COLAB_URL = os.getenv("COLAB_URL", "").strip()
 
+# Homepage route jo add kiya hai
+@app.route("/")
+def home():
+    return "<h1>Mera API Server Chal Raha Hai!</h1>"
+
 @app.get("/health")
 def health():
     """
@@ -56,3 +61,4 @@ if __name__ == "__main__":
     # Replit assigns PORT automatically; fallback 8080
     port = int(os.getenv("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
+
