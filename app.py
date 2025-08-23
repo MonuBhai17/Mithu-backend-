@@ -11,20 +11,21 @@ COLAB_URL = os.getenv("COLAB_URL", "").strip()
 
 @app.route("/")
 def home():
-    return "<h1>Mithu-Backend is running!</h1>"
+    # Humne yahan text badal diya hai taaki test kar sakein
+    return "<h1>Mithu-Backend - FormData Version</h1>"
 
 @app.post("/process")
 def process():
     if not COLAB_URL:
         return jsonify({"error": "COLAB_URL not set in Replit Secrets"}), 500
 
+    # FormData se file aur text dono recieve karne ka code
     video_file = request.files.get("video_file")
     video_url = request.form.get("video_url")
     
     if not video_file and not video_url:
         return jsonify({"error": "Video source is required"}), 400
 
-    # Data ko aage Colab ko bhejna hai
     colab_payload = request.form.to_dict()
     colab_files = {'video_file': (video_file.filename, video_file.stream, video_file.mimetype)} if video_file else {}
 
