@@ -15,25 +15,26 @@ def home():
 
 @app.post("/process")
 def process():
-    # Naya tareeka: Seedha JSON recieve karna
-    if not request.is_json:
-        return jsonify({"error": "Missing JSON in request"}), 400
+    if not COLAB_URL:
+        return jsonify({"error": "COLAB_URL not set in Replit Secrets"}), 500
 
-    data = request.get_json()
-    video_url = data.get('video_url')
-    reference_url = data.get('reference_url')
-
-    if not video_url or not reference_url:
-        return jsonify({"error": "video_url and reference_url are required"}), 400
+    video_file = request.files.get("video_file")
+    video_url = request.form.get("video_url")
     
-    # Colab ko aage JSON hi bhejenge
-    colab_payload = {
-        "video_url": video_url,
-        "reference_url": reference_url
-    }
+    if not video_file and not video_url:
+        return jsonify({"error": "Video source is required"}), 400
+
+    # Data ko aage Colab ko bhejna hai
+    colab_payload = request.form.to_dict()
+    colab_files = {'video_file': (video_file.filename, video_file.stream, video_file.mimetype)} if video_file else {}
 
     try:
-        resp = requests.post(COLAB_URL, json=colab_payload, timeout=300)
+        resp = requests.post(
+            COLAB_URL,
+            data=colab_payload,
+            files=colab_files,
+            timeout=300
+        )
         return jsonify(resp.json()), resp.status_code
     except Exception as e:
         return jsonify({"error": str(e)}), 500
