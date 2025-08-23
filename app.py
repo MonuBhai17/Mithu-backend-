@@ -5,16 +5,7 @@ import requests
 from waitress import serve
 
 app = Flask(__name__)
-
-# ======== CORS wala zaroori change ========
-# Yahan apne Vercel ke saare possible URLs daalein
-origins = [
-    "https://parro.vercel.app",
-    "https://parro-git-main-monubhai17s-projects.vercel.app",
-    "https://parro-hvjmatx7-monubhai17s-projects.vercel.app" # Ye URL aapke error me dikha tha
-]
-CORS(app, resources={r"/process": {"origins": origins}})
-# ==========================================
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 COLAB_URL = os.getenv("COLAB_URL", "").strip()
 
@@ -26,11 +17,28 @@ def home():
 def health():
     return {"ok": True, "colab_url_set": bool(COLAB_URL)}
 
+# ===== PROCESS FUNCTION ME JAASOOSI CODE DAALA GAYA HAI =====
 @app.post("/process")
 def process():
-    # ... (baaki ka poora code waisa hi rahega) ...
-    # ... (no changes needed here) ...
-    pass # Placeholder
+    # Jaasoos (Detective) Code:
+    print("--- REQUEST HEADERS ---")
+    print(request.headers)
+    print("--- REQUEST DATA (RAW) ---")
+    print(request.get_data())
+    print("-----------------------")
+
+    # Isse humein पता chalega ki frontend se kya data aa raha hai.
+    # Abhi ke liye hum aage process nahi karenge.
+    
+    # Check karke dekhte hain ki 'form' available hai ya nahi
+    if not hasattr(request, 'form'):
+        print("ERROR: request.form available nahi hai!")
+    else:
+        print("SUCCESS: request.form available hai!")
+        print(request.form)
+
+    return jsonify({"status": "debug_check_logs"})
 
 if __name__ == "__main__":
+    print("Starting server with waitress...")
     serve(app, host="0.0.0.0", port=8080)
