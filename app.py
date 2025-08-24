@@ -113,28 +113,106 @@ def upload_files():
         logger.error(f"Upload error: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/status/<job_id>', methods=['GET'])
-def check_status(job_id):
+@app.route('/file/<filename>', methods=['GET'])
+def serve_file(filename):
+    """Serve uploaded files for Colab access"""
     try:
-        # Check if output file exists
-        output_path = os.path.join(OUTPUT_FOLDER, f"{job_id}_output.mp4")
+        # Find file in uploads directory
+        for root, dirs, files in os.walk(UPLOAD_FOLDER):
+            if filename in files:
+                file_path = os.path.join(root, filename)
+                return send_file(file_path)
         
-        if os.path.exists(output_path):
-            return jsonify({
-                "job_id": job_id,
-                "status": "completed",
-                "download_url": f"/download/{job_id}"
-            })
+        return jsonify({"error": "File not found"}), 404
+        
+    except Exception as e:
+        logger.error(f"File serve error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/register-webhook', methods=['POST'])
+def register_webhook():
+    """Register Colab webhook URL"""
+    try:
+        data = request.json
+        if data.get('auth_token') != COLAB_AUTH_TOKEN:
+            return jsonify({"error": "Unauthorized"}), 401
+        
+        webhook_url = data.get('webhook_url')
+        if webhook_url:
+            # Store webhook URL (in production, save to database)
+            global COLAB_WEBHOOK_URL
+            COLAB_WEBHOOK_URL = webhook_url.replace('/process', '')  # Remove /process suffix
+            
+            logger.info(f"Registered Colab webhook: {COLAB_WEBHOOK_URL}")
+            return jsonify({"status": "registered", "webhook_url": webhook_url})
         else:
-            # Check processing status (in real implementation, query Colab or database)
-            return jsonify({
-                "job_id": job_id,
-                "status": "processing",
-                "message": "Video is being processed by AI..."
-            })
+            return jsonify({"error": "webhook_url required"}), 400
             
     except Exception as e:
-        logger.error(f"Status check error: {str(e)}")
+        logger.error(f"Webhook registration error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/upload-result', methods=['POST'])
+def upload_result():
+    """Receive processed video from Colab"""
+    try:
+        # Verify auth token
+        auth_token = request.form.get('auth_token')
+        if auth_token != COLAB_AUTH_TOKEN:
+            return jsonify({"error": "Unauthorized"}), 401
+        
+        job_id = request.form.get('job_id')
+        video_file = request.files.get('video')
+        
+        if not job_id or not video_file:
+            return jsonify({"error": "job_id and video file required"}), 400
+        
+        # Save the processed video
+        output_path = os.path.join(OUTPUT_FOLDER, f"{job_id}_output.mp4")
+        video_file.save(output_path)
+        
+        # Update job status
+        if job_id in active_jobs:
+            active_jobs[job_id]["status"] = "completed"
+            active_jobs[job_id]["completed_at"] = datetime.now().isoformat()
+            active_jobs[job_id]["output_path"] = output_path
+        
+        download_url = f"/download/{job_id}"
+        
+        logger.info(f"Received processed video for job {job_id}")
+        return jsonify({
+            "status": "success",
+            "job_id": job_id,
+            "download_url": download_url
+        })
+        
+    except Exception as e:
+        logger.error(f"Upload result error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/job-status', methods=['POST'])
+def update_job_status():
+    """Receive job status updates from Colab"""
+    try:
+        data = request.json
+        if data.get('auth_token') != COLAB_AUTH_TOKEN:
+            return jsonify({"error": "Unauthorized"}), 401
+        
+        job_id = data.get('job_id')
+        status = data.get('status')
+        message = data.get('message')
+        
+        if job_id in active_jobs:
+            active_jobs[job_id]["status"] = status
+            active_jobs[job_id]["last_update"] = datetime.now().isoformat()
+            if message:
+                active_jobs[job_id]["message"] = message
+        
+        logger.info(f"Job {job_id} status updated: {status}")
+        return jsonify({"status": "updated"})
+        
+    except Exception as e:
+        logger.error(f"Status update error: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/download/<job_id>', methods=['GET'])
